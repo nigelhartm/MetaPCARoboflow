@@ -90,7 +90,7 @@ public class RoboflowCaller : MonoBehaviour
         {
             if (!GUI.activeSelf)
             {
-                GUI.transform.position = CenterEyeAnchor.transform.forward + CenterEyeAnchor.transform.position;
+                GUI.transform.position = CenterEyeAnchor.transform.forward * 0.6f + CenterEyeAnchor.transform.position;
                 GUI.transform.rotation = Quaternion.LookRotation(GUI.transform.position - CenterEyeAnchor.transform.position);
                 GUI.SetActive(true);
             }
@@ -110,6 +110,7 @@ public class RoboflowCaller : MonoBehaviour
         }
         else
         {
+            GUI.SetActive(false); // Hide GUI when streaming starts
             isStreaming = true;
             StartCoroutine(callRoboflow());
             Debug.Log("Streaming started.");

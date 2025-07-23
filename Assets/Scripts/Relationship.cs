@@ -13,7 +13,7 @@ public class Relationship : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if(Vector3.Distance(Panda.transform.position, Bear.transform.position) < 0.2f)
+        if(Vector3.Distance(Panda.transform.position, Bear.transform.position) < 0.15f)
         {
             var renderer = pandaSystem.GetComponent<ParticleSystemRenderer>();
             renderer.material = MaterialLove;
