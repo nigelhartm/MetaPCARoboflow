@@ -6,6 +6,7 @@ public class RF_Object : MonoBehaviour
     [SerializeField] private string @class = "DefaultObjectName";
     [SerializeField] private int classID = 0;
     [SerializeField] private TMPro.TextMeshProUGUI debugText;
+    [SerializeField] private GameObject debugTextObject;
     [SerializeField] private float autoDisableDuration = 2f;
     private Coroutine autoDisableCoroutine;
 
@@ -41,8 +42,9 @@ public class RF_Object : MonoBehaviour
         }
     }
 
-    public void SuccesfullyTracked(Vector3 position) {
+    public void SuccesfullyTracked(Vector3 position, Vector3 CameraPosition) {
         this.gameObject.transform.position = position;
+        this.debugTextObject.transform.rotation = Quaternion.LookRotation(debugTextObject.transform.position - CameraPosition);
         this.Enable();
 
         // Restart the auto-disable timer
@@ -52,6 +54,7 @@ public class RF_Object : MonoBehaviour
         }
         autoDisableCoroutine = StartCoroutine(AutoDisableAfterDelay());
     }
+
     private IEnumerator AutoDisableAfterDelay()
     {
         yield return new WaitForSeconds(autoDisableDuration);

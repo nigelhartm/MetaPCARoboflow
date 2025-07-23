@@ -154,6 +154,7 @@ MonoBehaviour:
   class: panda
   classID: 1
   debugText: {fileID: 1129110798}
+  debugTextObject: {fileID: 1514558084}
   autoDisableDuration: 2
 --- !u!135 &88760641
 SphereCollider:
@@ -12550,7 +12551,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   imageDisplay: {fileID: 619707336}
   webCamTextureManager: {fileID: 773190231}
-  ROBOFLOW_API_KEY: SGEbUiwPKknTxSfSMt7q
   envRaycastManager: {fileID: 1061294767}
   _activeMarkers:
   - {fileID: 88760640}
@@ -13576,6 +13576,7 @@ MonoBehaviour:
   class: bear
   classID: 0
   debugText: {fileID: 393429617}
+  debugTextObject: {fileID: 545296376}
   autoDisableDuration: 2
 --- !u!135 &2043227395
 SphereCollider:

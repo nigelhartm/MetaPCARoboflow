@@ -47,12 +47,13 @@ public class RoboflowCaller : MonoBehaviour
 
     public void onDebugClicked()
     {
-        if (!DEBUG_MODE)
+        if (!this.DEBUG_MODE)
         {
             debugTextPanda.SetActive(true);
             debugTextBear.SetActive(true);
             pandaRenderer.enabled = true;
             bearRenderer.enabled = true;
+            this.DEBUG_MODE = true;
         }
         else
         {
@@ -60,6 +61,7 @@ public class RoboflowCaller : MonoBehaviour
             debugTextBear.SetActive(false);
             pandaRenderer.enabled = false;
             bearRenderer.enabled = false;
+            this.DEBUG_MODE = false;
         }
     }
 
@@ -350,7 +352,7 @@ public class RoboflowCaller : MonoBehaviour
 
             var labelKey = detectedLabel.ToString();
 
-            marker.SuccesfullyTracked(markerWorldPos);
+            marker.SuccesfullyTracked(markerWorldPos, CenterEyeAnchor.transform.position);
             marker.SetDebugText(labelKey + " " + predictions[i].confidence.ToString("F2"));
             Debug.Log("Setting marker " + i + " to position: " + markerWorldPos + " with scale: " + markerScale);
         }
