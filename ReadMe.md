@@ -11,6 +11,7 @@ Supports:
 Works seamlessly in:
 - 🎮 Unity Editor/Desktop
 - 🕶️ Meta Quest (with **Passthrough Camera API** for live view object detection)
+
 https://github.com/user-attachments/assets/918cf409-72e0-4ad2-930b-6b5f87c5b27d
 
 ---
