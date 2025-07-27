@@ -131,9 +131,9 @@ public static class APIKeys
 
 ---
 
-## 📸 Screenshots (Editor + Quest)
+## 📸 Preview Calling different Roboflow Models
 
-*Coming soon*
+https://github.com/user-attachments/assets/31eaba65-9ebf-4c7a-ab52-74f29aa69f84
 
 ---
 
