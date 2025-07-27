@@ -6,7 +6,8 @@ Supports:
 - ✅ Object Detection
 - ✅ Classification
 - ✅ Instance Segmentation
-- ✅ Keypoint Detection  
+- ✅ Keypoint Detection
+<br>  
 Works seamlessly in:
 - 🎮 Unity Editor/Desktop
 - 🕶️ Meta Quest (with **Passthrough Camera API** for live view object detection)
