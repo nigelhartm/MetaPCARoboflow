@@ -1,16 +1,18 @@
-﻿# Roboflow Unity Inference Toolkit
+﻿# MetaPCARoboflow
 
 This Unity project demonstrates how to perform real-time AI inference using the [Roboflow Inference Server](https://github.com/roboflow/inference), powered by a full C# Roboflow API wrapper.
 
-Supports:
+## Supports:
 - ✅ Object Detection
 - ✅ Classification
 - ✅ Instance Segmentation
 - ✅ Keypoint Detection
 
-Works seamlessly in:
-- 🎮 Unity Editor/Desktop
-- 🕶️ Meta Quest (with **Passthrough Camera API** for live view object detection)
+# Unity Integration
+
+https://github.com/user-attachments/assets/fb95140b-74d6-4454-a994-29929a8ecbba
+
+# Meta Quest Integration (realtime inference with **PCA**)
 
 https://github.com/user-attachments/assets/918cf409-72e0-4ad2-930b-6b5f87c5b27d
 
@@ -20,7 +22,7 @@ https://github.com/user-attachments/assets/918cf409-72e0-4ad2-930b-6b5f87c5b27d
 
 ### 1. Clone this Repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/roboflow-unity-inference.git
+git clone https://github.com/nigelhartm/MetaPCARoboflow.git
 ````
 
 ### 2. Setup Roboflow Inference Server (required)
@@ -29,19 +31,13 @@ You **must run a local inference server** from Roboflow. Follow their official s
 
 👉 [https://github.com/roboflow/inference](https://github.com/roboflow/inference)
 
-**Example (Docker):**
-
-```bash
-docker run --rm -it -p 9001:9001 roboflow/roboflow-inference-server-cpu:latest
-```
-
-You can now access the inference server at:
+# You can now access the inference server at:
 
 ```
 http://localhost:9001
 ```
 
-On Meta Quest, ensure your server is reachable via local IP, e.g. `http://192.168.0.100:9001`.
+The client is preconfigured to call localhost, on Meta Quest ensure to set your computers ip address e.g. `http://192.168.0.100:9001`.
 
 ---
 
@@ -69,6 +65,12 @@ StartCoroutine(client.InferObjectDetection(request,
 ```
 
 You can also call:
+
+* `InferClassification(...)`
+* `InferInstanceSegmentation(...)`
+* `InferKeypointsDetection(...)`
+
+And use alterantive Requests/Responses:
 
 * `InferClassification(...)`
 * `InferInstanceSegmentation(...)`
@@ -136,7 +138,7 @@ public static class APIKeys
 
 
 
-https://github.com/user-attachments/assets/fb95140b-74d6-4454-a994-29929a8ecbba
+
 
 
 
