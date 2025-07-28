@@ -2,7 +2,7 @@
 
 This Unity project demonstrates how to perform real-time AI inference using the [Roboflow Inference Server](https://github.com/roboflow/inference), powered by a full C# Roboflow API wrapper.
 
-## Supports:
+# Supports:
 - ✅ Object Detection
 - ✅ Classification
 - ✅ Instance Segmentation
@@ -31,15 +31,14 @@ You **must run a local inference server** from Roboflow. Follow their official s
 
 👉 [https://github.com/roboflow/inference](https://github.com/roboflow/inference)
 
-# You can now access the inference server at:
+### 3A. Run Unity sample
 
-```
-http://localhost:9001
-```
+Open the `RoboflowUnityTutorial.unity` Scene and start it. The first call always take a bit longer, because the models need to get buffered locally first.
 
-The client is preconfigured to call localhost, on Meta Quest ensure to set your computers ip address e.g. `http://192.168.0.100:9001`.
+### 3B. Run Meta Quest sample
 
----
+Change the IP address in the `RoboflowCaller.cs` at `client = new RoboflowInferenceClient(APIKeys.RF_API_KEY, "http://192.168.0.220:9001");` to the one of your inference server (e.g. your computer).
+Then create an android build of the `MetaQuestSample.unity` Scene and run it on the Meta Quest.
 
 ## 🧠 Roboflow API Wrapper (C#)
 
@@ -79,39 +78,11 @@ And the Request/Responses accordingly!
 Using the **Meta XR SDK** and Unity Passthrough Camera API, this project supports **real-time live camera inference** in XR.
 
 ### Features:
-
 * Live webcam (WebCamTexture) converted to base64 image
 * Auto detection and marker overlay
 * Confidence filtering and label visualization
 * Uses Meta’s `PassthroughCameraUtils.ScreenPointToRayInWorld` for correct ray placement
 * Interactive marker tracking + relationship logic
-
----
-
-## 🎮 Unity Editor Support
-
-You can test models directly in the Unity Editor using provided example images.
-Includes UI dropdown, preview image, and debug text showing predictions.
-
----
-
-## 📂 Folder Structure
-
-```
-RoboflowUnity/
-│
-├── Scripts/
-│   ├── RoboflowInferenceClient.cs      # C# Wrapper Client
-│   ├── RoboflowObject.cs               # Tracked object with label & auto-disable
-│   ├── RoboflowCaller.cs               # Main runtime loop for XR/Quest
-│   ├── RoboflowUnityTutorial.cs       # Standalone UI tutorial for desktop/Editor
-│
-├── Resources/
-│   └── Sample images for each model type
-│
-├── GeneratedSchemas/
-│   └── Auto-generated C# classes from OpenAPI spec
-```
 
 ---
 
@@ -130,21 +101,10 @@ public static class APIKeys
 
 ---
 
-## 📸 Preview Calling different Roboflow Models
-
-
-
-
-
-
-
----
-
 ## ❤️ Credits
 
 * [Roboflow](https://roboflow.com) for their open Inference API
 * Meta for Passthrough Camera API
-* Unity for XR platform support
 
 ## Resources
 
