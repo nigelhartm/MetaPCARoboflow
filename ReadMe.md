@@ -56,6 +56,7 @@ It supports simple, type-safe calls to any inference type.
 var client = new RoboflowInferenceClient("YOUR_API_KEY", "http://localhost:9001");
 
 var image = new InferenceRequestImage("base64", Convert.ToBase64String(myTexture.EncodeToPNG()));
+
 var request = new ObjectDetectionInferenceRequest("my-model-id/1", image);
 
 StartCoroutine(client.InferObjectDetection(request, 
