@@ -3,6 +3,8 @@ using TMPro;
 using UnityEngine.UI;
 using UnityEngine;
 using Newtonsoft.Json;
+using static System.Net.Mime.MediaTypeNames;
+using System.Collections.Generic;
 
 /// Supported model types that the dropdown can switch between
 public enum ModelType
@@ -18,7 +20,8 @@ public class RoboflowUnityTutorial : MonoBehaviour
     [Header("UI References")]
     [SerializeField] private RawImage displayImage;              // UI element to show the selected image
     [SerializeField] private TMP_Dropdown modelDropdown;         // Dropdown to select the model type
-    [SerializeField] private TMP_Text debugText;                 // Text field to show inference output or errors
+    [SerializeField] private OverlayManager overlayManager; // For drawing overlays on UI
+    [SerializeField] private RectTransform overlayRect; // RectTransform for the overlay area
 
     [Header("Images for Inference")]
     [SerializeField] private Texture2D imageObjectDetection;     // Image for Object Detection
@@ -81,6 +84,8 @@ public class RoboflowUnityTutorial : MonoBehaviour
     {
         displayImage.texture = GetSelectedImage();
         displayImage.SetNativeSize(); // Adjusts RawImage size to match texture dimensions
+        overlayRect.sizeDelta = new Vector2(displayImage.texture.width, displayImage.texture.height); // Set overlay size to match image
+        overlayManager.Clear(); // Clear any previous overlays
     }
 
     // Returns the correct test image for the selected model
@@ -112,18 +117,24 @@ public class RoboflowUnityTutorial : MonoBehaviour
     // Handler for Object Detection response
     private void OnResponse(ObjectDetectionInferenceResponse response)
     {
-        Debug.Log("Raw Response: " + JsonConvert.SerializeObject(response)); // Log raw JSON
+        Debug.Log("Raw Response: " + JsonConvert.SerializeObject(response));
+        overlayManager.Clear();
 
         if (response?.Predictions?.Count > 0)
         {
-            string info = "";
+            Texture2D tex = displayImage.texture as Texture2D;
+            if (tex == null) return;
+
+            Vector2 imageSize = new Vector2(tex.width, tex.height);
+
             foreach (var p in response.Predictions)
-                info += $"Found {p.Class} with confidence {p.Confidence:F2}\n";
-            debugText.text = info;
+            {
+                overlayManager.DrawBoundingBox(p.X, p.Y, p.Width, p.Height, $"{p.Class} ({p.Confidence:F2})", imageSize);
+            }
         }
         else
         {
-            debugText.text = "No predictions returned.";
+            overlayManager.Clear();
         }
     }
 
@@ -131,53 +142,88 @@ public class RoboflowUnityTutorial : MonoBehaviour
     private void OnResponse(ClassificationInferenceResponse response)
     {
         Debug.Log("Raw Response: " + JsonConvert.SerializeObject(response));
+        overlayManager.Clear(); // Clear previous overlays
 
         if (response?.Predictions?.Count > 0)
         {
-            string info = "";
-            foreach (var p in response.Predictions)
-                info += $"Found {p.Class} with confidence {p.Confidence:F2}\n";
-            debugText.text = info;
+            // Get the top prediction (most confident one)
+            var bestPrediction = response.Predictions[0];
+            string label = $"{bestPrediction.Class} ({bestPrediction.Confidence:F2})";
+
+            // Draw the classification label at the top of the image
+            overlayManager.DrawClassificationLabel(label);
+
+            Debug.Log($"Classification: {label}");
         }
         else
         {
-            debugText.text = "No predictions returned.";
+            Debug.Log("No classification predictions");
         }
     }
 
-    // Handler for Instance Segmentation response
+
     private void OnResponse(InstanceSegmentationInferenceResponse response)
     {
         Debug.Log("Raw Response: " + JsonConvert.SerializeObject(response));
+        overlayManager.Clear(); // Clear previous overlays
 
         if (response?.Predictions?.Count > 0)
         {
-            string info = "";
+            Texture2D tex = displayImage.texture as Texture2D;
+            if (tex == null) return;
+
+            Vector2 imageSize = new Vector2(tex.width, tex.height);
+
             foreach (var p in response.Predictions)
-                info += $"Found {p.Class} with confidence {p.Confidence:F2}\n";
-            debugText.text = info;
+            {
+                // Convert list of PointOutput to Vector2 list
+                List<Vector2> polygonPoints = new();
+                foreach (var pt in p.Points)
+                {
+                    polygonPoints.Add(new Vector2(pt.X, pt.Y));
+                }
+
+                // Draw the polygon in UI space
+                overlayManager.DrawPolygon(polygonPoints, imageSize);
+
+                // Optional: Draw label text near the top-left of the polygon
+                //overlayManager.DrawClassificationLabel($"{p.Class} ({p.Confidence:F2})");
+
+                Debug.Log($"Drew instance polygon for {p.Class} with {polygonPoints.Count} points");
+            }
         }
         else
         {
-            debugText.text = "No predictions returned.";
+            Debug.Log("No instance segmentation predictions found.");
         }
     }
+
 
     // Handler for Keypoints Detection response
     private void OnResponse(KeypointsDetectionInferenceResponse response)
     {
-        Debug.Log("Raw Response: " + JsonConvert.SerializeObject(response));
-
-        if (response?.Predictions?.Count > 0)
+        Debug.Log("keypoints started");
+        if (response?.Predictions == null || response.Predictions.Count == 0)
         {
-            string info = "";
-            foreach (var p in response.Predictions)
-                info += $"Found {p.Class} with confidence {p.Confidence:F2}\n";
-            debugText.text = info;
+            Debug.Log("No predictions found.");
+            return;
         }
-        else
+
+        Texture2D tex = displayImage.texture as Texture2D;
+        if (tex == null) return;
+
+        Vector2 imageSize = new Vector2(tex.width, tex.height);
+
+        foreach (var prediction in response.Predictions)
         {
-            debugText.text = "No predictions returned.";
+            if (prediction.Keypoints == null || prediction.Keypoints.Count == 0)
+                continue;
+
+            List<Vector2> keypointPositions = new();
+            foreach (var kp in prediction.Keypoints)
+                keypointPositions.Add(new Vector2(kp.X, kp.Y));
+
+            overlayManager.DrawKeypoints(keypointPositions, imageSize);
         }
     }
 
@@ -185,6 +231,6 @@ public class RoboflowUnityTutorial : MonoBehaviour
     private void OnError(string error)
     {
         Debug.LogError("Inference error: " + error);
-        debugText.text = "Error: " + error;
+        Debug.Log("no predictions");
     }
 }
