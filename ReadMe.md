@@ -118,7 +118,7 @@ RoboflowUnity/
 
 ## 🔑 Setup Notes
 
-* Create a file called `APIKeys.cs` with your API key:
+* Create a file Assets/Secrets/`APIKeys.cs` with your API key:
 
 ```csharp
 public static class APIKeys
@@ -127,7 +127,7 @@ public static class APIKeys
 }
 ```
 
-* In XR mode, make sure your Quest has permission to access local network and the inference server is reachable.
+* In XR mode, make sure your Quest has permission to access local network via (HTTP) and the inference server is reachable.
 
 ---
 
@@ -147,6 +147,12 @@ https://github.com/user-attachments/assets/fb95140b-74d6-4454-a994-29929a8ecbba
 * Meta for Passthrough Camera API
 * Unity for XR platform support
 
+## Resources
+
+<a href="https://www.flaticon.com/free-icons/heart" title="heart icons">Heart icons created by Vlad Szirka - Flaticon</a><br>
+<a href="https://www.flaticon.com/free-icons/bear" title="bear icons">Bear icons created by Andri Graphic - Flaticon</a><br>
+<a href="https://www.flaticon.com/free-icons/cry" title="cry icons">Cry icons created by Creativenoys01 - Flaticon</a><br>
+<a href="https://console.cloud.google.com/marketplace/product/roboflow-public/roboflow" title="cry icons">Roboflow Icon</a><br>
 ---
 
 ## 📄 License
