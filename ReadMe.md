@@ -70,11 +70,7 @@ You can also call:
 * `InferInstanceSegmentation(...)`
 * `InferKeypointsDetection(...)`
 
-And use alterantive Requests/Responses:
-
-* `InferClassification(...)`
-* `InferInstanceSegmentation(...)`
-* `InferKeypointsDetection(...)`
+And the Request/Responses accordingly!
 
 ---
 
