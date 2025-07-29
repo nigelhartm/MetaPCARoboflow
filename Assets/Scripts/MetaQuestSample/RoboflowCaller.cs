@@ -41,6 +41,12 @@ public class RoboflowCaller : MonoBehaviour
 
     private RoboflowInferenceClient client;                          // API client
 
+    private int _callCount = 0;
+    private float _callStartTime = 0f;
+    private Texture2D result; // Texture for resized images
+    private const int targetWidth = 512; // Target width for resized images
+    private const int targetHeight = 512; // Target height for resized images
+
     private void Awake()
     {
         _mainCamera = Camera.main;
@@ -77,8 +83,10 @@ public class RoboflowCaller : MonoBehaviour
         bearMarker.Init();
 
 
-        StartCoroutine(updateTexture2D());   // Start webcam-to-texture updates
+        result = new Texture2D(targetWidth, targetHeight, TextureFormat.RGBA32, false);
+        StartCoroutine(initCoroutine());
     }
+
 
     private void Update()
     {
@@ -121,22 +129,26 @@ public class RoboflowCaller : MonoBehaviour
     /// <summary>
     /// Continuously updates a Texture2D with the webcam feed.
     /// </summary>
-    private IEnumerator updateTexture2D()
+    private void initTexture2D()
     {
+        texture2D = new Texture2D(webCamTextureManager.WebCamTexture.width, webCamTextureManager.WebCamTexture.height, TextureFormat.RGB24, false);
+        texture2D.SetPixels(webCamTextureManager.WebCamTexture.GetPixels());
+        texture2D.Apply();
+    }
+
+    private void updateTexture2D() {
+        texture2D.SetPixels(webCamTextureManager.WebCamTexture.GetPixels());
+        texture2D.Apply();
+    }
+
+    private IEnumerator initCoroutine()
+    {
+        Debug.Log("initCoroutine started");
         while (webCamTextureManager.WebCamTexture == null)
             yield return null;
-
-        initialImageDisplay(); // show webcam feed in UI
-
-        // Create Texture2D to hold captured frames
-        texture2D = new Texture2D(webCamTextureManager.WebCamTexture.width, webCamTextureManager.WebCamTexture.height, TextureFormat.RGB24, false);
-
-        while (true)
-        {
-            texture2D.SetPixels(webCamTextureManager.WebCamTexture.GetPixels());
-            texture2D.Apply();
-            yield return new WaitForSeconds(0.1f); // ~10 FPS roboflow can not handle more than that in my case
-        }
+        // Wait for webcam to be ready
+        initialImageDisplay();
+        initTexture2D();
     }
 
     /// <summary>
@@ -161,7 +173,6 @@ public class RoboflowCaller : MonoBehaviour
         RenderTexture.active = rt;
         Graphics.Blit(source, rt);
 
-        var result = new Texture2D(targetWidth, targetHeight, TextureFormat.RGBA32, false);
         result.ReadPixels(new Rect(0, 0, targetWidth, targetHeight), 0, 0);
         result.Apply();
 
@@ -170,11 +181,12 @@ public class RoboflowCaller : MonoBehaviour
         return result;
     }
 
-    /// <summary>
-    /// Sends frames to Roboflow, waits for a response, and visualizes detections.
-    /// </summary>
+
+
     private IEnumerator callRoboflow()
     {
+        _callCount = 0;
+        _callStartTime = Time.time;
         while (isStreaming)
         {
             if (texture2D == null)
@@ -182,12 +194,12 @@ public class RoboflowCaller : MonoBehaviour
                 yield return null;
                 continue;
             }
+            updateTexture2D();
 
             // Convert to base64 for API
-            byte[] png = resizeTexture(texture2D, 512, 512).EncodeToPNG();
-            yield return null;
-            string base64Image = Convert.ToBase64String(png);
-            yield return null;
+            //byte[] png = resizeTexture(texture2D, 512, 512).EncodeToPNG();
+            byte[] jpg = resizeTexture(texture2D, 512, 512).EncodeToJPG(80); // Set quality (0–100)
+            string base64Image = Convert.ToBase64String(jpg);
             var image = new InferenceRequestImage("base64", base64Image);
 
             bool isDone = false;
@@ -198,7 +210,21 @@ public class RoboflowCaller : MonoBehaviour
                 response => { OnResponse(response); isDone = true; },
                 error => { Debug.Log(error); isDone = true; }
             ));
+
             yield return new WaitUntil(() => isDone);
+
+            // Zähler erhöhen
+            _callCount++;
+
+            // Durchschnitt alle 10 Sekunden ausgeben
+            float elapsed = Time.time - _callStartTime;
+            if (elapsed >= 10f)
+            {
+                float avgPerSecond = _callCount / elapsed;
+                Debug.Log($"callRoboflow average call/seconds: {avgPerSecond:F2} over {elapsed:F1} seconds.");
+                _callCount = 0;
+                _callStartTime = Time.time;
+            }
         }
     }
 
