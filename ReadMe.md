@@ -37,9 +37,10 @@ git clone https://github.com/nigelhartm/MetaPCARoboflow.git
 
 ### 2. Setup Roboflow Inference Server (required)
 
-Roboflow Inference runs locally or on-device via Docker. Follow their official instructions to start the server:
-Make sure it's accessible via your local network (e.g. http://192.168.x.x:9001) for Meta Quest.
 👉 [https://github.com/roboflow/inference](https://github.com/roboflow/inference)
+
+Roboflow Inference runs locally or on-device via Docker. Follow their official instructions to start the server:
+Make sure it's accessible via your local network for Meta Quest.
 
 ### 3A. Run Unity sample
 
