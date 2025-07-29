@@ -10,11 +10,19 @@ This Unity project demonstrates how to perform real-time AI inference using the 
 
 # Unity Integration
 
-https://github.com/user-attachments/assets/fb95140b-74d6-4454-a994-29929a8ecbba
+
+
+https://github.com/user-attachments/assets/c3eed80b-bb17-44ce-ae04-5664c7e76728
+
+
 
 # Meta Quest Integration (realtime inference with **PCA**)
 
-https://github.com/user-attachments/assets/918cf409-72e0-4ad2-930b-6b5f87c5b27d
+
+
+https://github.com/user-attachments/assets/e8b7b40e-c85a-4ed8-aea8-e7c395433576
+
+
 
 ---
 
