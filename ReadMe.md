@@ -39,8 +39,8 @@ git clone https://github.com/nigelhartm/MetaPCARoboflow.git
 
 👉 [https://github.com/roboflow/inference](https://github.com/roboflow/inference)
 
-Roboflow Inference runs locally or on-device via Docker. Follow their official instructions to start the server:
-Make sure it's accessible via your local network for Meta Quest.
+To run AI inference, you need to start a local Roboflow Inference Server on your computer (PC or Mac).
+This project does not run the model directly on the Meta Quest or on-device. Instead, it sends images from Unity or your headset to the inference server running on your desktop.
 
 ### 3A. Run Unity sample
 
