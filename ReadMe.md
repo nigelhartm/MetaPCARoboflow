@@ -53,11 +53,10 @@ This project does not run the model directly on the Meta Quest or on-device. Ins
 Change the IP address in the `RoboflowCaller.cs` at `client = new RoboflowInferenceClient(APIKeys.RF_API_KEY, "http://192.168.0.220:9001");` to the one of your inference server (e.g. your computer).
 Then create an android build of the `MetaQuestSample.unity` Scene and run it on the Meta Quest.
 
-> :warning: **Server not running**: Don't forget that the server need to be started before and the first call takes up to a minute to download the model before!
 
 * Open MetaQuestSample.unity.
 
-* Set the correct IP address in `RoboflowCaller.cs`:
+* Set the correct IP address in `RoboflowCaller.cs` or directly in the scenes GameObject:
 
 ```csharp
 client = new RoboflowInferenceClient(APIKeys.RF_API_KEY, "http://YOUR_COMPUTER_IP:9001");
@@ -65,6 +64,8 @@ client = new RoboflowInferenceClient(APIKeys.RF_API_KEY, "http://YOUR_COMPUTER_I
 
 * Build the project for Android (XR Plugin Management > Oculus).
 * Deploy and run on Meta Quest with permissions for camera and local network access.
+
+> :warning: **Server not running**: Don't forget that the server need to be started before and the first call takes up to a minute to download the model before!
 
 ---
 
@@ -78,6 +79,16 @@ public static class APIKeys
     public const string RF_API_KEY = "your-roboflow-api-key";
 }
 ```
+
+---
+
+## 🚀 Use your own model
+To run your own model with the Meta Quest sample take care of these steps
+
+* Open the MetaQuestSample Scene
+* Open the RoboflowCaller in the Inspector
+* Set RF_MODEL = "...";
+* Set LOCAL_SERVER_IP_ADDRESS = Your Local IP Address
 
 ---
 
