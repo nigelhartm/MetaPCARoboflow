@@ -5,6 +5,8 @@ using System.Collections;
 using System;
 using System.Collections.Generic;
 using Meta.XR;
+using static Oculus.Interaction.Context;
+using JetBrains.Annotations;
 
 /// <summary>
 /// Handles webcam streaming, sending frames to Roboflow,
@@ -13,10 +15,10 @@ using Meta.XR;
 public class RoboflowCaller : MonoBehaviour
 {
     [Header("Camera & Streaming")]
-    [SerializeField] private RawImage imageDisplay;                  // UI display for webcam feed
+    [SerializeField] private RawImage imageDisplay; // UI display for webcam feed
     [SerializeField] private WebCamTextureManager webCamTextureManager;
-    private Texture2D texture2D = null;                              // Used for sending frames to Roboflow
-    private bool isStreaming = false;                                // Streaming toggle
+    private Texture2D texture2D = null; // Used for sending frames to Roboflow
+    private bool isStreaming = false; // Streaming toggle
 
     [Header("3D Scene References")]
     [SerializeField] private EnvironmentRaycastManager envRaycastManager;
@@ -26,20 +28,16 @@ public class RoboflowCaller : MonoBehaviour
     [SerializeField] private GameObject CenterEyeAnchor;
 
     [Header("Tracked Marker Objects")]
-    [SerializeField] private RoboflowObject[] _markerPrefabs; // Prefabs to instantiate
+    [SerializeField] private GameObject _markerPrefab; // Prefabs to instantiate
+    [SerializeField] private List<string> rfClassNames; // Names of classes for UI
+    [SerializeField] private List<int> rfClassIds; // IDs of classes for UI
     private Dictionary<int, RoboflowObject> _activeMarkerMap = new(); // runtime pool
-    private float minConfidence = 0.84f;                             // Detection confidence threshold
-    [SerializeField] private RoboflowObject pandaMarker; // Panda marker prefab
-    [SerializeField] private RoboflowObject bearMarker;  // Bear marker prefab
+    private float minConfidence = 0.82f; // Detection confidence threshold
 
-    [Header("Debug Elements")]
-    [SerializeField] private GameObject debugTextPanda;
-    [SerializeField] private GameObject debugTextBear;
-    [SerializeField] private MeshRenderer pandaRenderer;
-    [SerializeField] private MeshRenderer bearRenderer;
-    [SerializeField] private bool DEBUG_MODE = true;
-
-    private RoboflowInferenceClient client;                          // API client
+    [Header("Roboflow API Configuration")]
+    [SerializeField] private string RF_MODEL = "xraihack_bears-fndxs/2"; // Model name for Roboflow
+    [SerializeField] private string LOCAL_SERVER_IP_ADDRESS = "http://192.168.0.220:9001"; // Local server URL for Roboflow
+    private RoboflowInferenceClient client; // API client
 
     private int _callCount = 0;
     private float _callStartTime = 0f;
@@ -52,57 +50,28 @@ public class RoboflowCaller : MonoBehaviour
         _mainCamera = Camera.main;
     }
 
-    /// <summary>
-    /// Toggle debug UI and object visuals.
-    /// </summary>
-    public void onDebugClicked()
-    {
-        DEBUG_MODE = !DEBUG_MODE;
-        debugTextPanda.SetActive(DEBUG_MODE);
-        debugTextBear.SetActive(DEBUG_MODE);
-        pandaRenderer.enabled = DEBUG_MODE;
-        bearRenderer.enabled = DEBUG_MODE;
-    }
-
     private void Start()
     {
         // Initialize Roboflow client with local server URL
-        client = new RoboflowInferenceClient(APIKeys.RF_API_KEY, "http://192.168.0.220:9001");
-
-        // Build marker pool dynamically
-        /*foreach (var prefab in _markerPrefabs)
-        {
-            var instance = Instantiate(prefab, Vector3.zero, Quaternion.identity);
-            instance.Init();
-            instance.Disable();
-            _activeMarkerMap[prefab.ClassID] = instance;
-        }*/
-        _activeMarkerMap[pandaMarker.ClassID] = pandaMarker;
-        _activeMarkerMap[bearMarker.ClassID] = bearMarker;
-        pandaMarker.Init();
-        bearMarker.Init();
-
+        client = new RoboflowInferenceClient(APIKeys.RF_API_KEY, LOCAL_SERVER_IP_ADDRESS);
+        BuildObjectPool();
 
         result = new Texture2D(targetWidth, targetHeight, TextureFormat.RGBA32, false);
         StartCoroutine(initCoroutine());
     }
 
-
-    private void Update()
+    /// <summary>
+    /// Sets up the object pool for Roboflow objects.
+    /// </summary>
+    private void BuildObjectPool()
     {
-        // Open/close GUI using controller button
-        if (OVRInput.GetDown(OVRInput.Button.Start))
+        // Build marker pool dynamically
+        for (var i = 0; i < rfClassNames.Count; i++)
         {
-            if (!GUI.activeSelf)
-            {
-                GUI.transform.position = CenterEyeAnchor.transform.position + CenterEyeAnchor.transform.forward * 0.6f;
-                GUI.transform.rotation = Quaternion.LookRotation(GUI.transform.position - CenterEyeAnchor.transform.position);
-                GUI.SetActive(true);
-            }
-            else
-            {
-                GUI.SetActive(false);
-            }
+            var instance = Instantiate(_markerPrefab, Vector3.zero, Quaternion.identity);
+            var rfObject = instance.GetComponent<RoboflowObject>();
+            rfObject.Init(rfClassNames[i], rfClassIds[i]); // Initialize with class name and ID
+            _activeMarkerMap[rfObject.ClassID] = rfObject;
         }
     }
 
@@ -206,7 +175,7 @@ public class RoboflowCaller : MonoBehaviour
 
             // Call Roboflow and wait for completion
             yield return StartCoroutine(client.InferObjectDetection(
-                new ObjectDetectionInferenceRequest("xraihack_bears-fndxs/2", image),
+                new ObjectDetectionInferenceRequest(RF_MODEL, image),
                 response => { OnResponse(response); isDone = true; },
                 error => { Debug.Log(error); isDone = true; }
             ));
@@ -333,8 +302,8 @@ public class RoboflowCaller : MonoBehaviour
             var markerScale = new Vector3(markerWidth, markerHeight, 1f);
 
             marker.SuccesfullyTracked(markerWorldPos, CenterEyeAnchor.transform.position);
-            marker.SetDebugText(prediction.Class + " " + prediction.Confidence.ToString("F2"));
 
+            marker.SetDebugText(prediction.Class + " " + prediction.Confidence.ToString("F2"));
             Debug.Log($"Placed marker {i} at {markerWorldPos} with scale {markerScale}");
         }
     }
