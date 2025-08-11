@@ -53,6 +53,8 @@ This project does not run the model directly on the Meta Quest or on-device. Ins
 Change the IP address in the `RoboflowCaller.cs` at `client = new RoboflowInferenceClient(APIKeys.RF_API_KEY, "http://192.168.0.220:9001");` to the one of your inference server (e.g. your computer).
 Then create an android build of the `MetaQuestSample.unity` Scene and run it on the Meta Quest.
 
+> :warning: **Server not running**: Don't forget that the server need to be started before and the first call takes up to a minute to download the model before!
+
 * Open MetaQuestSample.unity.
 
 * Set the correct IP address in `RoboflowCaller.cs`:
@@ -128,10 +130,6 @@ Using the **Meta XR SDK** and Unity Passthrough Camera API, this project support
 * [Roboflow](https://roboflow.com) for their open Inference API
 * <a href="https://github.com/xrdevrob/QuestCameraKit" title="">PCA Samples by Rob</a><br>
 * <a href="https://github.com/oculus-samples/Unity-PassthroughCameraApiSamples/" title="">Meta for Passthrough Camera API</a><br>
-* <a href="https://www.flaticon.com/free-icons/heart" title="heart icons">Heart icons created by Vlad Szirka - Flaticon</a><br>
-* <a href="https://www.flaticon.com/free-icons/bear" title="bear icons">Bear icons created by Andri Graphic - Flaticon</a><br>
-* <a href="https://www.flaticon.com/free-icons/cry" title="cry icons">Cry icons created by Creativenoys01 - Flaticon</a><br>
-* <a href="https://console.cloud.google.com/marketplace/product/roboflow-public/roboflow" title="cry icons">Roboflow Icon</a><br>
 
 ---
 
