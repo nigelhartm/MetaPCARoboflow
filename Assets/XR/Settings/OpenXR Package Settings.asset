@@ -689,7 +689,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   features:
   - {fileID: -9082144451254093234}
-  - {fileID: 5613279946210087646}
   - {fileID: 3180101675644247826}
   - {fileID: 7449498974006138490}
   - {fileID: -3126807674025034965}
@@ -733,9 +732,6 @@ MonoBehaviour:
   m_spacewarpMotionVectorTextureFormat: 0
   m_optimizeBufferDiscards: 0
   m_symmetricProjection: 0
-  m_optimizeMultiviewRenderRegions: 0
-  m_multiviewRenderRegionsOptimizationMode: 0
-  m_hasMigratedMultiviewRenderRegionSetting: 1
   m_foveatedRenderingApi: 0
 --- !u!114 &-971736349583854669
 MonoBehaviour:
@@ -1367,8 +1363,6 @@ MonoBehaviour:
   lateLatchingMode: 0
   lateLatchingDebug: 0
   optimizeMultiviewRenderRegions: 0
-  multiviewRenderRegionsOptimizationMode: 0
-  m_hasMigratedMultiviewRenderRegions: 1
   spacewarpMotionVectorTextureFormat: 0
 --- !u!114 &5613279946210087646
 MonoBehaviour:
@@ -1508,9 +1502,6 @@ MonoBehaviour:
   m_spacewarpMotionVectorTextureFormat: 0
   m_optimizeBufferDiscards: 0
   m_symmetricProjection: 0
-  m_optimizeMultiviewRenderRegions: 0
-  m_multiviewRenderRegionsOptimizationMode: 0
-  m_hasMigratedMultiviewRenderRegionSetting: 1
   m_foveatedRenderingApi: 0
 --- !u!114 &7277319857171304898
 MonoBehaviour:

@@ -5,8 +5,6 @@ using System.Collections;
 using System;
 using System.Collections.Generic;
 using Meta.XR;
-using static Oculus.Interaction.Context;
-using JetBrains.Annotations;
 
 /// <summary>
 /// Handles webcam streaming, sending frames to Roboflow,
@@ -22,7 +20,6 @@ public class RoboflowCaller : MonoBehaviour
 
     [Header("3D Scene References")]
     [SerializeField] private EnvironmentRaycastManager envRaycastManager;
-    private Camera _mainCamera;
     [SerializeField] private GameObject GUI;
     [SerializeField] private GameObject leftHandController;
     [SerializeField] private GameObject CenterEyeAnchor;
@@ -32,23 +29,16 @@ public class RoboflowCaller : MonoBehaviour
     [SerializeField] private List<string> rfClassNames; // Names of classes for UI
     [SerializeField] private List<int> rfClassIds; // IDs of classes for UI
     private Dictionary<int, RoboflowObject> _activeMarkerMap = new(); // runtime pool
-    private float minConfidence = 0.82f; // Detection confidence threshold
+    [SerializeField] private float minConfidence = 0.8f; // Detection confidence threshold
 
     [Header("Roboflow API Configuration")]
     [SerializeField] private string RF_MODEL = "xraihack_bears-fndxs/2"; // Model name for Roboflow
     [SerializeField] private string LOCAL_SERVER_IP_ADDRESS = "http://192.168.0.220:9001"; // Local server URL for Roboflow
     private RoboflowInferenceClient client; // API client
 
-    private int _callCount = 0;
-    private float _callStartTime = 0f;
     private Texture2D result; // Texture for resized images
     private const int targetWidth = 512; // Target width for resized images
     private const int targetHeight = 512; // Target height for resized images
-
-    private void Awake()
-    {
-        _mainCamera = Camera.main;
-    }
 
     private void Start()
     {
@@ -95,40 +85,29 @@ public class RoboflowCaller : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Continuously updates a Texture2D with the webcam feed.
-    /// </summary>
-    private void initTexture2D()
-    {
-        texture2D = new Texture2D(webCamTextureManager.WebCamTexture.width, webCamTextureManager.WebCamTexture.height, TextureFormat.RGB24, false);
-        texture2D.SetPixels(webCamTextureManager.WebCamTexture.GetPixels());
-        texture2D.Apply();
-    }
-
     private void updateTexture2D() {
         texture2D.SetPixels(webCamTextureManager.WebCamTexture.GetPixels());
         texture2D.Apply();
     }
 
+    /// <summary>
+    /// Initializes the webcam texture and sets it to the image display.
+    /// </summary>
     private IEnumerator initCoroutine()
     {
         Debug.Log("initCoroutine started");
+
+        // Wait for webcam to be ready
         while (webCamTextureManager.WebCamTexture == null)
             yield return null;
-        // Wait for webcam to be ready
-        initialImageDisplay();
-        initTexture2D();
-    }
 
-    /// <summary>
-    /// Sets the image display to show the webcam feed.
-    /// </summary>
-    private void initialImageDisplay()
-    {
         if (imageDisplay != null && webCamTextureManager.WebCamTexture != null)
         {
             imageDisplay.texture = webCamTextureManager.WebCamTexture;
         }
+
+        texture2D = new Texture2D(webCamTextureManager.WebCamTexture.width, webCamTextureManager.WebCamTexture.height, TextureFormat.RGB24, false);
+        updateTexture2D();
     }
 
     /// <summary>
@@ -141,21 +120,15 @@ public class RoboflowCaller : MonoBehaviour
         var previous = RenderTexture.active;
         RenderTexture.active = rt;
         Graphics.Blit(source, rt);
-
         result.ReadPixels(new Rect(0, 0, targetWidth, targetHeight), 0, 0);
         result.Apply();
-
         RenderTexture.active = previous;
         RenderTexture.ReleaseTemporary(rt);
         return result;
     }
 
-
-
     private IEnumerator callRoboflow()
     {
-        _callCount = 0;
-        _callStartTime = Time.time;
         while (isStreaming)
         {
             if (texture2D == null)
@@ -165,14 +138,11 @@ public class RoboflowCaller : MonoBehaviour
             }
             updateTexture2D();
 
-            // Convert to base64 for API
-            //byte[] png = resizeTexture(texture2D, 512, 512).EncodeToPNG();
-            byte[] jpg = resizeTexture(texture2D, 512, 512).EncodeToJPG(80); // Set quality (0–100)
+            byte[] jpg = resizeTexture(texture2D, 512, 512).EncodeToJPG(80);
             string base64Image = Convert.ToBase64String(jpg);
             var image = new InferenceRequestImage("base64", base64Image);
 
             bool isDone = false;
-
             // Call Roboflow and wait for completion
             yield return StartCoroutine(client.InferObjectDetection(
                 new ObjectDetectionInferenceRequest(RF_MODEL, image),
@@ -181,19 +151,6 @@ public class RoboflowCaller : MonoBehaviour
             ));
 
             yield return new WaitUntil(() => isDone);
-
-            // Zähler erhöhen
-            _callCount++;
-
-            // Durchschnitt alle 10 Sekunden ausgeben
-            float elapsed = Time.time - _callStartTime;
-            if (elapsed >= 10f)
-            {
-                float avgPerSecond = _callCount / elapsed;
-                Debug.Log($"callRoboflow average call/seconds: {avgPerSecond:F2} over {elapsed:F1} seconds.");
-                _callCount = 0;
-                _callStartTime = Time.time;
-            }
         }
     }
 
@@ -206,7 +163,6 @@ public class RoboflowCaller : MonoBehaviour
         {
             foreach (var pred in response.Predictions)
                 Debug.Log($"Detected {pred.Class} at ({pred.X},{pred.Y}) confidence: {pred.Confidence}");
-
             renderDetections(response.Predictions);
         }
         else
@@ -215,6 +171,9 @@ public class RoboflowCaller : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Clears all previously tracked markers.
+    /// </summary>
     private void clearPreviousMarkers()
     {
         foreach (var marker in _activeMarkerMap.Values)
@@ -239,16 +198,13 @@ public class RoboflowCaller : MonoBehaviour
     /// </summary>
     public void renderDetections(List<ObjectDetectionPrediction> predictions)
     {
-        var intrinsics = PassthroughCameraUtils.GetCameraIntrinsics(webCamTextureManager.Eye);
-        var camRes = intrinsics.Resolution;
-        var imageWidth = 512;
-        var imageHeight = 512;
-        var halfWidth = imageWidth * 0.5f;
-        var halfHeight = imageHeight * 0.5f;
+        Vector2Int camRes = PassthroughCameraUtils.GetCameraIntrinsics(webCamTextureManager.Eye).Resolution;
+        float halfWidth = targetWidth * 0.5f;
+        float halfHeight = targetHeight * 0.5f;
 
         for (int i = 0; i < predictions.Count; i++)
         {
-            var prediction = predictions[i];
+            ObjectDetectionPrediction prediction = predictions[i];
 
             if (prediction.Confidence < minConfidence)
             {
@@ -264,14 +220,12 @@ public class RoboflowCaller : MonoBehaviour
             }
 
             // Convert center to pixel space
-            var adjustedCenterX = prediction.X - halfWidth;
-            var adjustedCenterY = prediction.Y - halfHeight;
-
-            var perX = (adjustedCenterX + halfWidth) / imageWidth;
-            var perY = (adjustedCenterY + halfHeight) / imageHeight;
-
-            var centerPixel = new Vector2(perX * camRes.x, (1.0f - perY) * camRes.y);
-            var centerRay = PassthroughCameraUtils.ScreenPointToRayInWorld(webCamTextureManager.Eye, new Vector2Int(Mathf.RoundToInt(centerPixel.x), Mathf.RoundToInt(centerPixel.y)));
+            float adjustedCenterX = prediction.X - halfWidth;
+            float adjustedCenterY = prediction.Y - halfHeight;
+            float perX = (adjustedCenterX + halfWidth) / targetWidth;
+            float perY = (adjustedCenterY + halfHeight) / targetHeight;
+            Vector2 centerPixel = new Vector2(perX * camRes.x, (1.0f - perY) * camRes.y);
+            Ray centerRay = PassthroughCameraUtils.ScreenPointToRayInWorld(webCamTextureManager.Eye, new Vector2Int(Mathf.RoundToInt(centerPixel.x), Mathf.RoundToInt(centerPixel.y)));
 
             if (!envRaycastManager.Raycast(centerRay, out var centerHit))
             {
@@ -279,32 +233,11 @@ public class RoboflowCaller : MonoBehaviour
                 continue;
             }
 
-            var markerWorldPos = centerHit.point;
-
-            // Get corners for scale estimation
-            var u1 = (prediction.X - prediction.Width * 0.5f) / imageWidth;
-            var v1 = (prediction.Y - prediction.Height * 0.5f) / imageHeight;
-            var u2 = (prediction.X + prediction.Width * 0.5f) / imageWidth;
-            var v2 = (prediction.Y + prediction.Height * 0.5f) / imageHeight;
-
-            var tlPixel = new Vector2Int(Mathf.RoundToInt(u1 * camRes.x), Mathf.RoundToInt((1.0f - v1) * camRes.y));
-            var brPixel = new Vector2Int(Mathf.RoundToInt(u2 * camRes.x), Mathf.RoundToInt((1.0f - v2) * camRes.y));
-
-            var tlRay = PassthroughCameraUtils.ScreenPointToRayInWorld(webCamTextureManager.Eye, tlPixel);
-            var brRay = PassthroughCameraUtils.ScreenPointToRayInWorld(webCamTextureManager.Eye, brPixel);
-
-            var depth = Vector3.Distance(_mainCamera.transform.position, markerWorldPos);
-            var worldTL = tlRay.GetPoint(depth);
-            var worldBR = brRay.GetPoint(depth);
-
-            var markerWidth = Mathf.Abs(worldBR.x - worldTL.x);
-            var markerHeight = Mathf.Abs(worldBR.y - worldTL.y);
-            var markerScale = new Vector3(markerWidth, markerHeight, 1f);
+            Vector3 markerWorldPos = centerHit.point;
 
             marker.SuccesfullyTracked(markerWorldPos, CenterEyeAnchor.transform.position);
-
             marker.SetDebugText(prediction.Class + " " + prediction.Confidence.ToString("F2"));
-            Debug.Log($"Placed marker {i} at {markerWorldPos} with scale {markerScale}");
+            Debug.Log($"Placed marker {i} at {markerWorldPos}");
         }
     }
 }
