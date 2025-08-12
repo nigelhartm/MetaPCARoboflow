@@ -41,6 +41,7 @@ git clone https://github.com/nigelhartm/MetaPCARoboflow.git
 
 To run AI inference, you need to start a local Roboflow Inference Server on your computer (PC or Mac).
 This project does not run the model directly on the Meta Quest or on-device. Instead, it sends images from Unity or your headset to the inference server running on your desktop.
+For CUDA I recommend this link https://developer.nvidia.com/cuda-downloads
 
 ### 3A. Run Unity sample
 
