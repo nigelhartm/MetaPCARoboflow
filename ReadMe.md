@@ -1,30 +1,18 @@
-﻿# MetaPCARoboflow
+﻿# MetaPCA-Roboflow
 
-MetaPCARoboflow is a Unity-based application demonstrating real-time AI inference using the [Roboflow Inference Server](https://github.com/roboflow/inference). It is powered by a full-featured C# Roboflow API wrapper and supports seamless integration with Meta Quest's Passthrough Camera API (PCA) for mixed reality applications.
+A Unity plugin that brings you custom-trained object detection to XR, powered by Roboflow and optimized for Meta Quest.
 
-Use it to add object detection, classification, keypoint tracking, and instance segmentation to both 2D and 3D XR environments.
+<img src="https://github.com/user-attachments/assets/ef565f29-b837-4c57-8328-1973be15b9a4" alt="MetaPCARoboflow" width="540px">
 
-# Supported Inference Types:
+## 🔎 Overview
+* Roboflow is a platform for building, training, and deploying computer vision models, with milions of users.
+* This project runs real-time, custom-trained computer vision model on Meta Quest via [Roboflow Inference Server](https://github.com/roboflow/inference), using Meta's Camera Access (PCA).
+
+### Supported Inference Types:
 - ✅ Object Detection
 - ✅ Classification
 - ✅ Instance Segmentation
 - ✅ Keypoint Detection
-
-# Unity Integration
-
-
-
-https://github.com/user-attachments/assets/c3eed80b-bb17-44ce-ae04-5664c7e76728
-
-
-
-# Meta Quest Integration (Live XR Inference)
-
-
-
-https://github.com/user-attachments/assets/e8b7b40e-c85a-4ed8-aea8-e7c395433576
-
-
 
 ---
 
@@ -134,6 +122,14 @@ Using the **Meta XR SDK** and Unity Passthrough Camera API, this project support
 * Confidence filtering and label visualization
 * Raycasting into real world
 * Interactive marker tracking
+
+---
+
+## Relevant Sources & Opportunities
+
+* [SensAI Kits GitHub](https://github.com/XRBootcamp/SensAIKits) - Main hub for all XR AI kits
+* [SensAI Hackademy](https://www.sensaihackademy.com) - Early access program for courses and toolkits
+* [SensAI Hack](https://sensaihack.com) - Upcoming hackathons where you can use the kits
 
 ---
 
