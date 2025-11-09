@@ -1,4 +1,3 @@
-using PassthroughCameraSamples;
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
@@ -7,14 +6,13 @@ using System.Collections.Generic;
 using Meta.XR;
 
 /// <summary>
-/// Handles webcam streaming, sending frames to Roboflow,
-/// receiving detections, and rendering tracked objects in 3D space.
+/// Handles webcam streaming, sending frames to Roboflow, receiving detections, and rendering tracked objects in 3D space.
 /// </summary>
 public class RoboflowCaller : MonoBehaviour
 {
     [Header("Camera & Streaming")]
     [SerializeField] private RawImage imageDisplay; // UI display for webcam feed
-    [SerializeField] private WebCamTextureManager webCamTextureManager;
+    private PassthroughCameraAccess cameraAccess;
     private Texture2D texture2D = null; // Used for sending frames to Roboflow
     private bool isStreaming = false; // Streaming toggle
 
@@ -47,7 +45,7 @@ public class RoboflowCaller : MonoBehaviour
         BuildObjectPool();
 
         result = new Texture2D(targetWidth, targetHeight, TextureFormat.RGBA32, false);
-        StartCoroutine(initCoroutine());
+        setupCamera();
     }
 
     /// <summary>
@@ -86,28 +84,28 @@ public class RoboflowCaller : MonoBehaviour
     }
 
     private void updateTexture2D() {
-        texture2D.SetPixels(webCamTextureManager.WebCamTexture.GetPixels());
-        texture2D.Apply();
+        if (cameraAccess.enabled)
+        {
+            texture2D = cameraAccess.GetTexture() as Texture2D;
+        }
     }
 
     /// <summary>
     /// Initializes the webcam texture and sets it to the image display.
     /// </summary>
-    private IEnumerator initCoroutine()
+    private void setupCamera()
     {
-        Debug.Log("initCoroutine started");
+        Debug.Log("Setup Camera...");
 
-        // Wait for webcam to be ready
-        while (webCamTextureManager.WebCamTexture == null)
-            yield return null;
+        cameraAccess = gameObject.AddComponent<PassthroughCameraAccess>();
+        cameraAccess.CameraPosition = PassthroughCameraAccess.CameraPositionType.Left;
+        cameraAccess.RequestedResolution = new Vector2Int(1280, 960);
 
-        if (imageDisplay != null && webCamTextureManager.WebCamTexture != null)
+        if (cameraAccess.enabled)
         {
-            imageDisplay.texture = webCamTextureManager.WebCamTexture;
+            texture2D = cameraAccess.GetTexture() as Texture2D;
+            imageDisplay.texture = cameraAccess.GetTexture();
         }
-
-        texture2D = new Texture2D(webCamTextureManager.WebCamTexture.width, webCamTextureManager.WebCamTexture.height, TextureFormat.RGB24, false);
-        updateTexture2D();
     }
 
     /// <summary>
@@ -192,13 +190,12 @@ public class RoboflowCaller : MonoBehaviour
         return marker;
     }
 
-
     /// <summary>
     /// Projects 2D detections into 3D space using raycasting and renders marker objects. Copy from Rob's PCA samples.
     /// </summary>
     public void renderDetections(List<ObjectDetectionPrediction> predictions)
     {
-        Vector2Int camRes = PassthroughCameraUtils.GetCameraIntrinsics(webCamTextureManager.Eye).Resolution;
+        Vector2Int camRes = cameraAccess.CurrentResolution;
         float halfWidth = targetWidth * 0.5f;
         float halfHeight = targetHeight * 0.5f;
 
@@ -224,9 +221,8 @@ public class RoboflowCaller : MonoBehaviour
             float adjustedCenterY = prediction.Y - halfHeight;
             float perX = (adjustedCenterX + halfWidth) / targetWidth;
             float perY = (adjustedCenterY + halfHeight) / targetHeight;
-            Vector2 centerPixel = new Vector2(perX * camRes.x, (1.0f - perY) * camRes.y);
-            Ray centerRay = PassthroughCameraUtils.ScreenPointToRayInWorld(webCamTextureManager.Eye, new Vector2Int(Mathf.RoundToInt(centerPixel.x), Mathf.RoundToInt(centerPixel.y)));
 
+            Ray centerRay = cameraAccess.ViewportPointToRay(new Vector2(perX, 1.0f - perY));
             if (!envRaycastManager.Raycast(centerRay, out var centerHit))
             {
                 Debug.LogWarning("Raycast failed.");
@@ -234,7 +230,6 @@ public class RoboflowCaller : MonoBehaviour
             }
 
             Vector3 markerWorldPos = centerHit.point;
-
             marker.SuccesfullyTracked(markerWorldPos, CenterEyeAnchor.transform.position);
             marker.SetDebugText(prediction.Class + " " + prediction.Confidence.ToString("F2"));
             Debug.Log($"Placed marker {i} at {markerWorldPos}");
