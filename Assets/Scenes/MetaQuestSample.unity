@@ -2257,9 +2257,9 @@ MonoBehaviour:
   rfClassNames:
   - bear
   - panda
-  rfClassIds: 0000000001000000
   minConfidence: 0.76
-  RF_MODEL: xraihack_bears-fndxs/2
+  RF_MODEL: xraihack_bears-fndxs/6
+  USE_LOCAL_SERVER: 0
   LOCAL_SERVER_IP_ADDRESS: http://192.168.178.23:9001
 --- !u!4 &1498238869
 Transform:

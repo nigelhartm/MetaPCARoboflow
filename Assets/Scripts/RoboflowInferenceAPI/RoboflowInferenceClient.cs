@@ -10,6 +10,23 @@ public class RoboflowInferenceClient
 {
     private string baseUrl = "http://localhost:9001";
     private string global_api_Key = "";
+    /// <summary>
+    /// Select whether to use the local inference server or the hosted (serverless) Roboflow endpoint.
+    /// </summary>
+    public enum ApiMode { Local, Hosted }
+
+    private ApiMode apiMode = ApiMode.Local;
+    // Optional hint about hosted model type (object_detection, instance_segmentation, etc.).
+    public enum HostedModelType
+    {
+        ObjectDetection,
+        InstanceSegmentation,
+        Classification,
+        KeypointsDetection
+    }
+
+    // Only used when apiMode == ApiMode.Hosted
+    private HostedModelType? hostedModelType = null;
 
     public void setBaseUrl(string url)
     {
@@ -21,7 +38,7 @@ public class RoboflowInferenceClient
     /// </summary>
     /// <param name="api_key"></param>
     /// <param name="baseURL"></param>
-    public RoboflowInferenceClient(string api_key, string baseURL = null)
+    public RoboflowInferenceClient(string api_key, string baseURL = null, ApiMode mode = ApiMode.Local, HostedModelType? hostedModelType = null)
     {
         if (!string.IsNullOrEmpty(api_key))
         {
@@ -40,6 +57,17 @@ public class RoboflowInferenceClient
         else
         {
             Debug.Log("No valid Base URL provided, using default: " + baseUrl);
+        }
+
+        // Set API mode (Local or Hosted)
+        this.apiMode = mode;
+        this.hostedModelType = hostedModelType;
+        Debug.Log("Roboflow client mode: " + this.apiMode.ToString() + (this.apiMode == ApiMode.Hosted && this.hostedModelType.HasValue ? (" (hosted type: " + this.hostedModelType.Value.ToString() + ")") : ""));
+
+        // If hosted mode is selected, require a hostedModelType to be provided.
+        if (this.apiMode == ApiMode.Hosted && !this.hostedModelType.HasValue)
+        {
+            Debug.LogError("RoboflowInferenceClient: Hosted mode selected but no hostedModelType provided. Callers must pass a HostedModelType when using hosted/serverless endpoints.");
         }
     }
 
@@ -255,16 +283,87 @@ public class RoboflowInferenceClient
     /// <param name="onError">Callback when request fails.</param>
     public IEnumerator InferObjectDetection(ObjectDetectionInferenceRequest request, Action<ObjectDetectionInferenceResponse> onSuccess, Action<string> onError, string countinference = null, string service_secret = null)
     {
+        // If Hosted mode is selected, the serverless Roboflow endpoint expects the model path
+        // in the URL and the body to be plain base64 text. The hosted endpoint does not accept
+        // the JSON request shape used for the local server. We still require the caller to
+        // provide the model id in request.Model_Id and the image as base64 in request.Image.Value.
+        if (this.apiMode == ApiMode.Hosted)
+        {
+            // Ensure hosted model type is configured and matches this inference method
+            if (!this.hostedModelType.HasValue)
+            {
+                onError?.Invoke("Hosted inference requires the client to be configured with a HostedModelType. Call the constructor with a HostedModelType value.");
+                yield break;
+            }
+            if (this.hostedModelType.Value != HostedModelType.ObjectDetection)
+            {
+                onError?.Invoke("Hosted inference client configured for " + this.hostedModelType.Value.ToString() + ", but InferObjectDetection was called. Use matching method or configure HostedModelType.ObjectDetection.");
+                yield break;
+            }
+            // Validate base64 image
+            if (request == null || request.Image == null || request.Image.Value == null)
+            {
+                onError?.Invoke("Hosted inference requires request.Image.Value to contain base64 image data.");
+                yield break;
+            }
+
+            string base64Payload = request.Image.Value.ToString();
+            if (string.IsNullOrEmpty(base64Payload))
+            {
+                onError?.Invoke("Hosted inference requires non-empty base64 image data in request.Image.Value.");
+                yield break;
+            }
+
+            // Build endpoint: {baseUrl}/{model_path}?api_key={key}
+            // request.Model_Id is expected to be something like "xraihack_bears-fndxs/6" for hosted usage
+            string endpoint = baseUrl.TrimEnd('/') + "/" + request.Model_Id.TrimStart('/');
+            // Append API key if available
+            if (!string.IsNullOrEmpty(global_api_Key))
+            {
+                endpoint += (endpoint.Contains("?") ? "&" : "?") + "api_key=" + UnityWebRequest.EscapeURL(global_api_Key);
+            }
+
+            using (UnityWebRequest req = new UnityWebRequest(endpoint, "POST"))
+            {
+                byte[] bodyRaw = Encoding.UTF8.GetBytes(base64Payload);
+                req.uploadHandler = new UploadHandlerRaw(bodyRaw);
+                req.downloadHandler = new DownloadHandlerBuffer();
+                req.SetRequestHeader("Content-Type", "text/plain");
+                req.timeout = 1;
+                yield return req.SendWebRequest();
+                if (req.result == UnityWebRequest.Result.Success)
+                {
+                    try
+                    {
+                        var res = JsonConvert.DeserializeObject<ObjectDetectionInferenceResponse>(req.downloadHandler.text);
+                        onSuccess?.Invoke(res);
+                    }
+                    catch (Exception ex)
+                    {
+                        onError?.Invoke("Failed to parse hosted object detection response: " + ex.Message);
+                    }
+                }
+                else if (req.result == UnityWebRequest.Result.ConnectionError && req.error == "Request timeout")
+                {
+                    onError?.Invoke("Request timed out after 1 second.");
+                }
+                else onError?.Invoke("Hosted request failed: " + req.error + " (" + req.downloadHandler.text + ")");
+            }
+
+            yield break;
+        }
+
+        // Local/default path: keep existing behavior
         request.Api_Key = global_api_Key; // Ensure the API key is set for the request
         var query = new List<string>();
         if (!string.IsNullOrEmpty(countinference)) query.Add("countinference=" + UnityWebRequest.EscapeURL(countinference));
         if (!string.IsNullOrEmpty(service_secret)) query.Add("service_secret=" + UnityWebRequest.EscapeURL(service_secret));
         string queryString = string.Join("&", query);
-        string endpoint = $"{baseUrl}/infer/object_detection" + (queryString.Length > 0 ? "?" + queryString : "");
+        string endpointLocal = $"{baseUrl}/infer/object_detection" + (queryString.Length > 0 ? "?" + queryString : "");
         string json = JsonConvert.SerializeObject(request, new JsonSerializerSettings {
             NullValueHandling = NullValueHandling.Ignore
         });
-        using (UnityWebRequest req = new UnityWebRequest(endpoint, "POST"))
+        using (UnityWebRequest req = new UnityWebRequest(endpointLocal, "POST"))
         {
             byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
             req.uploadHandler = new UploadHandlerRaw(bodyRaw);
@@ -290,6 +389,68 @@ public class RoboflowInferenceClient
     /// <param name="onError">Callback when request fails.</param>
     public IEnumerator InferInstanceSegmentation(InstanceSegmentationInferenceRequest request, Action<InstanceSegmentationInferenceResponse> onSuccess, Action<string> onError, string countinference = null, string service_secret = null)
     {
+        if (this.apiMode == ApiMode.Hosted)
+        {
+            if (!this.hostedModelType.HasValue)
+            {
+                onError?.Invoke("Hosted inference requires the client to be configured with a HostedModelType. Call the constructor with a HostedModelType value.");
+                yield break;
+            }
+            if (this.hostedModelType.Value != HostedModelType.InstanceSegmentation)
+            {
+                onError?.Invoke("Hosted inference client configured for " + this.hostedModelType.Value.ToString() + ", but InferInstanceSegmentation was called. Use matching method or configure HostedModelType.InstanceSegmentation.");
+                yield break;
+            }
+
+            if (request == null || request.Image == null || request.Image.Value == null)
+            {
+                onError?.Invoke("Hosted inference requires request.Image.Value to contain base64 image data.");
+                yield break;
+            }
+
+            string base64Payload = request.Image.Value.ToString();
+            if (string.IsNullOrEmpty(base64Payload))
+            {
+                onError?.Invoke("Hosted inference requires non-empty base64 image data in request.Image.Value.");
+                yield break;
+            }
+
+            string endpoint2 = baseUrl.TrimEnd('/') + "/" + request.Model_Id.TrimStart('/');
+            if (!string.IsNullOrEmpty(global_api_Key))
+            {
+                endpoint2 += (endpoint2.Contains("?") ? "&" : "?") + "api_key=" + UnityWebRequest.EscapeURL(global_api_Key);
+            }
+
+            using (UnityWebRequest req = new UnityWebRequest(endpoint2, "POST"))
+            {
+                byte[] bodyRaw = Encoding.UTF8.GetBytes(base64Payload);
+                req.uploadHandler = new UploadHandlerRaw(bodyRaw);
+                req.downloadHandler = new DownloadHandlerBuffer();
+                req.SetRequestHeader("Content-Type", "text/plain");
+                req.timeout = 1;
+                yield return req.SendWebRequest();
+                if (req.result == UnityWebRequest.Result.Success)
+                {
+                    try
+                    {
+                        var res = JsonConvert.DeserializeObject<InstanceSegmentationInferenceResponse>(req.downloadHandler.text);
+                        onSuccess?.Invoke(res);
+                    }
+                    catch (Exception ex)
+                    {
+                        onError?.Invoke("Failed to parse hosted instance segmentation response: " + ex.Message);
+                    }
+                }
+                else if (req.result == UnityWebRequest.Result.ConnectionError && req.error == "Request timeout")
+                {
+                    onError?.Invoke("Request timed out after 1 second.");
+                }
+                else onError?.Invoke("Hosted request failed: " + req.error + " (" + req.downloadHandler.text + ")");
+            }
+
+            yield break;
+        }
+
         request.Api_Key = global_api_Key; // Ensure the API key is set for the request
         var query = new List<string>();
         if (!string.IsNullOrEmpty(countinference)) query.Add("countinference=" + UnityWebRequest.EscapeURL(countinference));
@@ -305,6 +466,7 @@ public class RoboflowInferenceClient
             req.uploadHandler = new UploadHandlerRaw(bodyRaw);
             req.downloadHandler = new DownloadHandlerBuffer();
             req.SetRequestHeader("Content-Type", "application/json");
+            req.timeout = 1;
             yield return req.SendWebRequest();
             if (req.result == UnityWebRequest.Result.Success)
             {
@@ -325,6 +487,68 @@ public class RoboflowInferenceClient
     /// <param name="onError">Callback when request fails.</param>
     public IEnumerator InferClassification(ClassificationInferenceRequest request, Action<ClassificationInferenceResponse> onSuccess, Action<string> onError, string countinference = null, string service_secret = null)
     {
+        if (this.apiMode == ApiMode.Hosted)
+        {
+            if (!this.hostedModelType.HasValue)
+            {
+                onError?.Invoke("Hosted inference requires the client to be configured with a HostedModelType. Call the constructor with a HostedModelType value.");
+                yield break;
+            }
+            if (this.hostedModelType.Value != HostedModelType.Classification)
+            {
+                onError?.Invoke("Hosted inference client configured for " + this.hostedModelType.Value.ToString() + ", but InferClassification was called. Use matching method or configure HostedModelType.Classification.");
+                yield break;
+            }
+
+            if (request == null || request.Image == null || request.Image.Value == null)
+            {
+                onError?.Invoke("Hosted inference requires request.Image.Value to contain base64 image data.");
+                yield break;
+            }
+
+            string base64Payload = request.Image.Value.ToString();
+            if (string.IsNullOrEmpty(base64Payload))
+            {
+                onError?.Invoke("Hosted inference requires non-empty base64 image data in request.Image.Value.");
+                yield break;
+            }
+
+            string endpoint3 = baseUrl.TrimEnd('/') + "/" + request.Model_Id.TrimStart('/');
+            if (!string.IsNullOrEmpty(global_api_Key))
+            {
+                endpoint3 += (endpoint3.Contains("?") ? "&" : "?") + "api_key=" + UnityWebRequest.EscapeURL(global_api_Key);
+            }
+
+            using (UnityWebRequest req = new UnityWebRequest(endpoint3, "POST"))
+            {
+                byte[] bodyRaw = Encoding.UTF8.GetBytes(base64Payload);
+                req.uploadHandler = new UploadHandlerRaw(bodyRaw);
+                req.downloadHandler = new DownloadHandlerBuffer();
+                req.SetRequestHeader("Content-Type", "text/plain");
+                req.timeout = 1;
+                yield return req.SendWebRequest();
+                if (req.result == UnityWebRequest.Result.Success)
+                {
+                    try
+                    {
+                        var res = JsonConvert.DeserializeObject<ClassificationInferenceResponse>(req.downloadHandler.text);
+                        onSuccess?.Invoke(res);
+                    }
+                    catch (Exception ex)
+                    {
+                        onError?.Invoke("Failed to parse hosted classification response: " + ex.Message);
+                    }
+                }
+                else if (req.result == UnityWebRequest.Result.ConnectionError && req.error == "Request timeout")
+                {
+                    onError?.Invoke("Request timed out after 1 second.");
+                }
+                else onError?.Invoke("Hosted request failed: " + req.error + " (" + req.downloadHandler.text + ")");
+            }
+
+            yield break;
+        }
+
         request.Api_Key = global_api_Key; // Ensure the API key is set for the request
         var query = new List<string>();
         if (!string.IsNullOrEmpty(countinference)) query.Add("countinference=" + UnityWebRequest.EscapeURL(countinference));
@@ -360,6 +584,68 @@ public class RoboflowInferenceClient
     /// <param name="onError">Callback when request fails.</param>
     public IEnumerator InferKeypointsDetection(KeypointsDetectionInferenceRequest request, Action<KeypointsDetectionInferenceResponse> onSuccess, Action<string> onError, string countinference = null, string service_secret = null)
     {
+        if (this.apiMode == ApiMode.Hosted)
+        {
+            if (!this.hostedModelType.HasValue)
+            {
+                onError?.Invoke("Hosted inference requires the client to be configured with a HostedModelType. Call the constructor with a HostedModelType value.");
+                yield break;
+            }
+            if (this.hostedModelType.Value != HostedModelType.KeypointsDetection)
+            {
+                onError?.Invoke("Hosted inference client configured for " + this.hostedModelType.Value.ToString() + ", but InferKeypointsDetection was called. Use matching method or configure HostedModelType.KeypointsDetection.");
+                yield break;
+            }
+
+            if (request == null || request.Image == null || request.Image.Value == null)
+            {
+                onError?.Invoke("Hosted inference requires request.Image.Value to contain base64 image data.");
+                yield break;
+            }
+
+            string base64Payload = request.Image.Value.ToString();
+            if (string.IsNullOrEmpty(base64Payload))
+            {
+                onError?.Invoke("Hosted inference requires non-empty base64 image data in request.Image.Value.");
+                yield break;
+            }
+
+            string endpoint4 = baseUrl.TrimEnd('/') + "/" + request.Model_Id.TrimStart('/');
+            if (!string.IsNullOrEmpty(global_api_Key))
+            {
+                endpoint4 += (endpoint4.Contains("?") ? "&" : "?") + "api_key=" + UnityWebRequest.EscapeURL(global_api_Key);
+            }
+
+            using (UnityWebRequest req = new UnityWebRequest(endpoint4, "POST"))
+            {
+                byte[] bodyRaw = Encoding.UTF8.GetBytes(base64Payload);
+                req.uploadHandler = new UploadHandlerRaw(bodyRaw);
+                req.downloadHandler = new DownloadHandlerBuffer();
+                req.SetRequestHeader("Content-Type", "text/plain");
+                req.timeout = 1;
+                yield return req.SendWebRequest();
+                if (req.result == UnityWebRequest.Result.Success)
+                {
+                    try
+                    {
+                        var res = JsonConvert.DeserializeObject<KeypointsDetectionInferenceResponse>(req.downloadHandler.text);
+                        onSuccess?.Invoke(res);
+                    }
+                    catch (Exception ex)
+                    {
+                        onError?.Invoke("Failed to parse hosted keypoints detection response: " + ex.Message);
+                    }
+                }
+                else if (req.result == UnityWebRequest.Result.ConnectionError && req.error == "Request timeout")
+                {
+                    onError?.Invoke("Request timed out after 1 second.");
+                }
+                else onError?.Invoke("Hosted request failed: " + req.error + " (" + req.downloadHandler.text + ")");
+            }
+
+            yield break;
+        }
+
         request.Api_Key = global_api_Key; // Ensure the API key is set for the request
         var query = new List<string>();
         if (!string.IsNullOrEmpty(countinference)) query.Add("countinference=" + UnityWebRequest.EscapeURL(countinference));
@@ -2061,5 +2347,4 @@ public class RoboflowInferenceClient
             else onError?.Invoke("Request failed: " + req.error);
         }
     }
-
 }

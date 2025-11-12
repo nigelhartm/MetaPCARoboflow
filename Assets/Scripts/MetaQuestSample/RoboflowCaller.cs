@@ -4,6 +4,7 @@ using System.Collections;
 using System;
 using System.Collections.Generic;
 using Meta.XR;
+using System.ComponentModel;
 
 /// <summary>
 /// Handles webcam streaming, sending frames to Roboflow, receiving detections, and rendering tracked objects in 3D space.
@@ -25,12 +26,12 @@ public class RoboflowCaller : MonoBehaviour
     [Header("Tracked Marker Objects")]
     [SerializeField] private GameObject _markerPrefab; // Prefabs to instantiate
     [SerializeField] private List<string> rfClassNames; // Names of classes for UI
-    [SerializeField] private List<int> rfClassIds; // IDs of classes for UI
     private Dictionary<int, RoboflowObject> _activeMarkerMap = new(); // runtime pool
     [SerializeField] private float minConfidence = 0.8f; // Detection confidence threshold
 
     [Header("Roboflow API Configuration")]
-    [SerializeField] private string RF_MODEL = "xraihack_bears-fndxs/2"; // Model name for Roboflow
+    [SerializeField] private string RF_MODEL = "xraihack_bears-fndxs/6"; // Model name for Roboflow
+    [SerializeField] private bool USE_LOCAL_SERVER = false; // Toggle for local server usage
     [SerializeField] private string LOCAL_SERVER_IP_ADDRESS = "http://192.168.0.220:9001"; // Local server URL for Roboflow
     private RoboflowInferenceClient client; // API client
 
@@ -41,7 +42,14 @@ public class RoboflowCaller : MonoBehaviour
     private void Start()
     {
         // Initialize Roboflow client with local server URL
-        client = new RoboflowInferenceClient(APIKeys.RF_API_KEY, LOCAL_SERVER_IP_ADDRESS);
+        if (USE_LOCAL_SERVER)
+        {
+            client = new RoboflowInferenceClient(APIKeys.RF_API_KEY, LOCAL_SERVER_IP_ADDRESS);
+        }
+        else
+        {
+            client = new RoboflowInferenceClient(APIKeys.RF_API_KEY, "https://serverless.roboflow.com", RoboflowInferenceClient.ApiMode.Hosted, RoboflowInferenceClient.HostedModelType.ObjectDetection);
+        }
         BuildObjectPool();
 
         result = new Texture2D(targetWidth, targetHeight, TextureFormat.RGBA32, false);
@@ -58,7 +66,7 @@ public class RoboflowCaller : MonoBehaviour
         {
             var instance = Instantiate(_markerPrefab, Vector3.zero, Quaternion.identity);
             var rfObject = instance.GetComponent<RoboflowObject>();
-            rfObject.Init(rfClassNames[i], rfClassIds[i]); // Initialize with class name and ID
+            rfObject.Init(rfClassNames[i], i); // Initialize with class name and ID
             _activeMarkerMap[rfObject.ClassID] = rfObject;
         }
     }

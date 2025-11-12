@@ -81,6 +81,50 @@ To run your own model with the Meta Quest sample take care of these steps
 
 ---
 
+## 🚀 Hosted (Serverless) API
+
+You can now use Roboflow's hosted (serverless) endpoint instead of running a local inference server. This makes it much faster to get started — no local server to install or maintain. The hosted endpoint is at `https://serverless.roboflow.com/{model_path}?api_key=YOUR_KEY` and accepts the image as plain base64 text in the POST body.
+
+Key points:
+- **Faster setup**: no local inference server required.
+- **API key required**: requests must include your Roboflow API key (appended as `?api_key=...`).
+- **Model selection via URL**: the model path (e.g. `xraihack_bears-fndxs/6`) is part of the request URL.
+- **HostedModelType**: because the hosted endpoint does not accept an explicit model-type parameter, the client requires you to declare the model type up-front. This library exposes a `HostedModelType` enum — set the correct type when constructing `RoboflowInferenceClient` so the client knows how to parse responses.
+
+Example (Object Detection - hosted):
+
+```csharp
+// Create a hosted client for object detection
+var client = new RoboflowInferenceClient(
+    APIKeys.RF_API_KEY,
+    "https://serverless.roboflow.com",
+    RoboflowInferenceClient.ApiMode.Hosted,
+    RoboflowInferenceClient.HostedModelType.ObjectDetection
+);
+
+// RF_MODEL must be the hosted model path
+string RF_MODEL = "xraihack_bears-fndxs/6";
+
+// image: an InferenceRequestImage whose Value contains base64 image bytes
+var request = new ObjectDetectionInferenceRequest(RF_MODEL, image);
+
+StartCoroutine(client.InferObjectDetection(request,
+    response => {
+        Debug.Log("Detections: " + response.Predictions.Count);
+    },
+    error => {
+        Debug.LogError("Hosted inference error: " + error);
+    }
+));
+```
+
+Notes and caveats:
+- The hosted endpoint expects the POST body to be plain base64 text (not JSON). This client will send the `request.Image.Value` string as the body when in hosted mode.
+- When constructing `RoboflowInferenceClient` in hosted mode you must pass the appropriate `HostedModelType` (for example `HostedModelType.InstanceSegmentation` if the model is a segmentation model). The client validates this and returns an error if you call a mismatched inference method.
+- Hosted is ideal for quick testing and demos; for high-throughput or private models you may still prefer a local inference server.
+
+---
+
 ## 🧠 Roboflow API Wrapper (C#)
 
 This project includes a complete and strongly-typed C# wrapper around the Roboflow Inference API.
