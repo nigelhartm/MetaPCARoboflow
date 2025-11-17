@@ -1053,14 +1053,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: -4591318311845815790, guid: 993a7abbb30564a439b9818cdc8d9fb4, type: 3}
-      propertyPath: _cameraRig
-      value: 
-      objectReference: {fileID: 1745400556}
-    - target: {fileID: -4591318311845815790, guid: 993a7abbb30564a439b9818cdc8d9fb4, type: 3}
-      propertyPath: _removeHands
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 6593633850837054048, guid: 993a7abbb30564a439b9818cdc8d9fb4, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.18725
