@@ -30,7 +30,7 @@ public class RoboflowCaller : MonoBehaviour
     [SerializeField] private float minConfidence = 0.8f; // Detection confidence threshold
 
     [Header("Roboflow API Configuration")]
-    [SerializeField] private string RF_MODEL = "xraihack_bears-fndxs/6"; // Model name for Roboflow
+    [SerializeField] private string RF_MODEL = "our-data-1xywo/3"; // Model name for Roboflow
     [SerializeField] private bool USE_LOCAL_SERVER = false; // Toggle for local server usage
     [SerializeField] private string LOCAL_SERVER_IP_ADDRESS = "http://192.168.0.220:9001"; // Local server URL for Roboflow
     private RoboflowInferenceClient client; // API client
