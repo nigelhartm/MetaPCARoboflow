@@ -86,3 +86,5 @@ Assets/Oculus/OculusProjectConfig.asset
 
 .vscode/
 *.slnx
+Assets/XR/Temp/
+Assets/XR/Temp.meta
