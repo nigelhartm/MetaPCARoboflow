@@ -11,16 +11,12 @@ using System.ComponentModel;
 /// </summary>
 public class RoboflowCaller : MonoBehaviour
 {
-    [Header("Camera & Streaming")]
-    [SerializeField] private RawImage imageDisplay; // UI display for webcam feed
     private PassthroughCameraAccess cameraAccess;
     private Texture2D texture2D = null; // Used for sending frames to Roboflow
     private bool isStreaming = false; // Streaming toggle
 
     [Header("3D Scene References")]
     [SerializeField] private EnvironmentRaycastManager envRaycastManager;
-    [SerializeField] private GameObject GUI;
-    [SerializeField] private GameObject leftHandController;
     [SerializeField] private GameObject CenterEyeAnchor;
 
     [Header("Tracked Marker Objects")]
@@ -84,14 +80,14 @@ public class RoboflowCaller : MonoBehaviour
         }
         else
         {
-            GUI.SetActive(false);
             isStreaming = true;
             StartCoroutine(callRoboflow());
             Debug.Log("Streaming started.");
         }
     }
 
-    private void updateTexture2D() {
+    private void updateTexture2D()
+    {
         if (cameraAccess.enabled)
         {
             texture2D = cameraAccess.GetTexture() as Texture2D;
@@ -112,7 +108,6 @@ public class RoboflowCaller : MonoBehaviour
         if (cameraAccess.enabled)
         {
             texture2D = cameraAccess.GetTexture() as Texture2D;
-            imageDisplay.texture = cameraAccess.GetTexture();
         }
     }
 
