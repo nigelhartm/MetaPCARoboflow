@@ -80,9 +80,16 @@ Assets/Oculus/OculusProjectConfig.asset
 *.suo
 *.log
 
-# Key files
+# API Key files - NEVER commit these!
 /[Aa]ssets/[Ss]cripts/[Ss]ecrets/API_KEYS.cs
 /[Aa]ssets/[Ss]ecrets/API_KEYS.cs
+/[Aa]ssets/[Ss]cripts/[Ss]ecrets/APIKeys.cs
+/[Aa]ssets/[Ss]ecrets/APIKeys.cs
+/[Aa]ssets/[Ss]cripts/[Ss]ecrets/*.cs
+/[Aa]ssets/[Ss]ecrets/*.cs
+# Allow example files to be committed (they don't have .cs extension)
+!/[Aa]ssets/[Ss]cripts/[Ss]ecrets/*.example
+!/[Aa]ssets/[Ss]ecrets/*.example
 
 .vscode/
 *.slnx
